@@ -1,6 +1,8 @@
 const asyncHandler = require('express-async-handler')
 
 const Goal = require('../models/goalModel')
+const User = require('../models/userModel')// Importing to make it so User's can't delete each others' goals
+
 
 // @desc Get goals
 // @route GET /api/goals
@@ -15,7 +17,6 @@ const getGoals = asyncHandler(async (req, res) => {
 // @desc Set goal
 // @route POST /api/goals
 // @access Private
-
 const setGoal = asyncHandler(async (req, res) => {
     if(!req.body.text){
         res.status(400)
@@ -41,6 +42,20 @@ const updateGoal = asyncHandler(async (req, res) => {
         throw new Error('Goal not found')
     }
 
+    const user = await User.findById(req.user.id)
+
+    // Check for user
+    if(!user) {
+       res.status(401)
+       throw new Error('User not found')
+    }
+
+    // Make sure that the goal user matches the user
+    if(goal.user.toString() !== user.id){
+        res.status(401)
+        throw new Error('User not authorized')
+    }
+
     const updatedGoal = await Goal.findByIdAndUpdate(req.params.id, req.body,{
         new: true,
     })
@@ -59,6 +74,20 @@ const deleteGoal = asyncHandler(async (req, res) => {
     if(!goal) {
         res.status(400)
         throw new Error('Goal not found')
+    }
+
+    const user = await User.findById(req.user.id)
+
+    // Check for user
+    if(!user) {
+       res.status(401)
+       throw new Error('User not found')
+    }
+
+    // Make sure that the goal user matches the user
+    if(goal.user.toString() !== user.id){
+        res.status(401)
+        throw new Error('User not authorized')
     }
 
     await Goal.findByIdAndRemove(req.params.id)
